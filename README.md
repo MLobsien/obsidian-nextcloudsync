@@ -315,3 +315,16 @@ Bug reports and ideas are genuinely welcome. The plugin is still maturing, and m
 ## License
 
 [MIT](LICENSE) © Daisuke ITO
+
+## Fork patch (MLobsien): sync the entire vault, including community plugins
+
+This fork removes the plugin's hard exclusion of `.obsidian/plugins/`. With
+**Sync config folder** enabled, the *rest of the config folder* category now
+syncs every remaining file, including workspace.json and all community plugin
+files. The only permanently excluded paths are this sync plugin's own directory
+and its sync-state database (device-specific state).
+
+Use with care: syncing plugin code across devices means a plugin update on one
+device propagates to the others, and a plugin crash or data.json corruption can
+propagate as well. Keep Nextcloud's file version history enabled so any
+overwritten file is recoverable from inside Obsidian.
