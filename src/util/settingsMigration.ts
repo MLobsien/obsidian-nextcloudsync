@@ -15,12 +15,13 @@ export function migrateConfigSyncCategories(
   if (!sc || typeof sc !== 'object') return; // nothing persisted → keep defaults
   const obj = sc as Record<string, unknown>;
   if ('others' in obj) {
-    settings.configSync = { bookmarks: Boolean(obj.bookmarks), others: Boolean(obj.others) };
+    settings.configSync = { bookmarks: Boolean(obj.bookmarks), others: Boolean(obj.others), rest: true };
     return;
   }
   settings.configSync = {
     bookmarks: Boolean(obj.bookmarks),
     others: Boolean(obj.appearance) || Boolean(obj.themesSnippets) || Boolean(obj.hotkeys) || Boolean(obj.corePlugins),
+    rest: true,
   };
 }
 
@@ -42,7 +43,7 @@ export function migrateBookmarksToConfigSync(
   if (saved.syncConfigFolder !== undefined) return; // already on the new model — don't re-migrate
   if (saved.syncBookmarks === true) {
     settings.syncConfigFolder = true;
-    settings.configSync = { bookmarks: true, others: false };
+    settings.configSync = { bookmarks: true, others: false, rest: true };
   }
 }
 

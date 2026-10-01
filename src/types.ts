@@ -2,12 +2,15 @@
 
 /**
  * Opt-in flags for `.obsidian` config-folder sync (issue #1). Each flag is only consulted when the
- * master `syncConfigFolder` setting is on. Community plugins and the plugin's own sync-state DB are
- * intentionally NOT representable here — they are permanent hard exclusions.
+ * master `syncConfigFolder` setting is on. This plugin's own sync-state DB is a permanent
+ * hard exclusion; community plugins are represented by the `plugins` category (fork patch).
  *
  * Feature 029 collapsed the former five categories into two: Bookmarks stays on its own, and
  * everything else (appearance, themes & snippets, hotkeys, core-plugin settings) is grouped under
  * `others`. The detailed file mapping lives in `ConfigSyncResolver.CONFIG_SYNC_CATEGORIES`.
+ *
+ * Fork patch: adds `plugins` (full community-plugin code sync) and `rest` (catch-all for any config
+ * file not covered by an allowlist, e.g. workspace.json) so the entire vault can be synced.
  */
 export interface ConfigSyncCategories {
   /** bookmarks.json (migrated from the former standalone `syncBookmarks` setting) */
@@ -18,6 +21,8 @@ export interface ConfigSyncCategories {
    * hotkeys/corePlugins categories (feature 029).
    */
   others: boolean;
+  /** (Fork) Rest catch-all: everything else under `<configDir>/`, except the plugin's own dir. */
+  rest: boolean;
 }
 
 /**
@@ -125,10 +130,9 @@ export interface DavSyncSettings {
   massDeleteLimit: number;
   /**
    * Master opt-in for syncing parts of the Obsidian config folder (Vault#configDir, e.g. `.obsidian`).
-   * Default OFF. While off, nothing under the config folder is synced (notes-only behaviour).
+   * Fork patch: default OFF; community plugins ARE syncable via the `plugins` category
+   * when the master toggle is on. Only this plugin's own dir and its state DB stay excluded.
    * When on, the individual `configSync` categories below decide what is included.
-   * Community plugins (`<configDir>/plugins/`) and this plugin's own state DB are NEVER synced,
-   * regardless of these flags.
    */
   syncConfigFolder: boolean;
   /** Per-category opt-in for config-folder sync. Only consulted when `syncConfigFolder` is true. */
@@ -220,6 +224,7 @@ export const DEFAULT_SETTINGS: DavSyncSettings = {
   configSync: {
     bookmarks: true,
     others: true,
+    rest: true,
   },
   deviceName: '',
   logsFolder: '',

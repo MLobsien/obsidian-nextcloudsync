@@ -451,7 +451,7 @@ function configFolderGroup(host: SettingDefinitionsHost): SettingDefinitionGroup
   const items: SettingGroupItem[] = [
     {
       name: 'Sync config folder',
-      desc: `Opt in to syncing parts of the ${host.configDir} config folder across devices. Off by default — only notes and other vault files sync. Community plugins are never synced; their files stay device-local. A synced change to core-plugin settings may need an Obsidian restart to take effect on the other device.`,
+      desc: `Opt in to syncing parts of the ${host.configDir} config folder across devices. Off by default — only notes and other vault files sync. Fork patch: community plugins CAN be synced; only the sync plugin's own directory is always excluded. A synced change to core-plugin settings may need an Obsidian restart to take effect on the other device.`,
       aliases: ['obsidian folder', 'appearance', 'themes', 'hotkeys', 'settings sync'],
       control: { type: 'toggle', key: 'syncConfigFolder' },
     },

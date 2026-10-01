@@ -74,6 +74,12 @@ export const CONFIG_SYNC_CATEGORIES: readonly ConfigSyncCategoryDescriptor[] = [
       || rel === 'hotkeys.json'
       || CORE_PLUGIN_CONFIG_FILES.includes(rel),
   },
+  {
+    key: 'rest',
+    label: 'Rest of config folder (fork: catch-all incl. workspace etc.)',
+    description: 'Fork patch: syncs every remaining file under the config folder not covered by the allowlist categories (e.g. workspace.json, workspace-mobile.json). The sync plugin itself is always excluded.',
+    matches: () => true, // catch-all; hard exclusion of this plugin's own dir is applied separately
+  },
 ];
 
 export interface ConfigSyncResolverOptions {
@@ -129,15 +135,14 @@ export class ConfigSyncResolver {
     if (rel === null) return false;                 // not under configDir
     if (rel === '') return false;                   // the dir itself is not a file
     if (!this.opts.settings.syncConfigFolder) return false; // C1: master off
-    // C2/C3: hard exclusions win over every category toggle.
+    // C2: hard exclusions win over every category toggle. Fork patch: the `plugins/` exclusion
+    // was removed — community plugins are now syncable. Only this plugin's own dir (state DB,
+    // data.json) stays excluded.
     if (this.isUnderPluginDir(path)) return false;
-    if (rel === 'plugins' || rel.startsWith('plugins/')) return false;
-    // C4: any enabled category that claims this path.
-    const cs = this.opts.settings.configSync;
-    for (const cat of CONFIG_SYNC_CATEGORIES) {
-      if (cs[cat.key] && cat.matches(rel)) return true;
-    }
-    return false; // C5
+    // Fork patch: sync the whole config dir. Only ignore this plugin's own dir; everything else
+    // under the config dir is syncable. Return true for any config path (unless the hard
+    // pluginDir exclusion above has fired).
+    return !!this.opts.settings.syncConfigFolder;
   }
 
   /** True iff `path` is an included config-folder file (used to route conflicts to newest-wins). */
@@ -151,25 +156,19 @@ export class ConfigSyncResolver {
    * `plugins/`. Every returned path P satisfies `isIncluded(P) === true`.
    */
   async enumerateIncludedPaths(): Promise<string[]> {
+    // Fork patch: sync the whole config dir. Enumerate everything except this plugin's own dir.
     if (!this.opts.settings.syncConfigFolder) return [];
-    const cd = this.opts.configDir;
-    const cs = this.opts.settings.configSync;
     const out: string[] = [];
-
-    const exactFiles: string[] = [];
-    if (cs.bookmarks) exactFiles.push('bookmarks.json');
-    if (cs.others) exactFiles.push('appearance.json', 'app.json', 'hotkeys.json', ...CORE_PLUGIN_CONFIG_FILES);
-    for (const rel of exactFiles) {
-      const p = `${cd}/${rel}`;
-      const st = await this.opts.localAdapter.stat(p);
-      if (st) out.push(p);
+    try {
+      const listing = await this.opts.localAdapter.list(this.opts.configDir);
+      for (const f of listing.files) out.push(f);
+      for (const sub of listing.folders) {
+        if (sub === this.opts.pluginDir || sub.startsWith(`${this.opts.pluginDir}/`)) continue;
+        await this.listRecursive(sub, out);
+      }
+    } catch {
+      /* config dir absent or unreadable — nothing to inject */
     }
-
-    if (cs.others) {
-      await this.listRecursive(`${cd}/themes`, out);
-      await this.listRecursive(`${cd}/snippets`, out);
-    }
-
     return Array.from(new Set(out));
   }
 
